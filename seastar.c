@@ -19,41 +19,36 @@ long MAP_WIDTH;
 
 map<long, long> LAYER_DISTANCE;
 
-inline long position_to_index(const long &x, const long &y)
+long position_to_index(const long &x, const long &y)
 {
     return x+y*MAP_WIDTH;
 }
 
 /// Check to see if a coordinate is valid.
-inline bool check_coord(const long &x, const long &y, const long &max_x, const long &max_y)
+bool check_coord(const long &x, const long &y, const long &max_x, const long &max_y)
 {
-    // We use pass by reference so we don't have to make copies.
-    // The inline keyword hints to the compiler that this function is tiny and
-    // it should try to insert it as though it isn't a function call,
-    // but rather as a stream of code.
-    bool b1 = x >= 0;
-    bool b2 = x < max_x;
-    bool b3 = y >= 0;
-    bool b4 = x < max_y;
-    return b1 && b2 && b3 && b4;
+    // If x is -1, converting it to unsigned will make it huge, which makes it bigger than max_x
+    bool b1 = unsigned(x) < unsigned(max_x);
+    bool b2 = unsigned(y) < unsigned(max_y);
+    return b1 && b2;
 }
 
-inline long distance(const long &x1, const long &y1, const long &x2, const long &y2)
+long distance(const long &x1, const long &y1, const long &x2, const long &y2)
 {
    return abs(x1-x2)+abs(y1-y2); 
 }
 
-inline long indextox(const long &p)
+long indextox(const long &p)
 {
     return p % MAP_WIDTH;
 }
 
-inline long indextoy(const long &p)
+long indextoy(const long &p)
 {
     return p / MAP_WIDTH;
 }
 
-inline long indexdistance(const long &p1, const long &p2)
+long indexdistance(const long &p1, const long &p2)
 {
     return distance( indextox(p1), indextoy(p1), indextox(p2), indextoy(p2) );
 }
@@ -155,6 +150,8 @@ DLLEXPORT long* astar(long *startv, const long startc, long *endv, const long en
     long traveled;
     long min;
     long tmp;
+    long blocked;
+    long start;
 
     // Start by making the best estimate the size of the map
     best_est.resize(obstaclec);
@@ -219,7 +216,7 @@ DLLEXPORT long* astar(long *startv, const long startc, long *endv, const long en
 
         closedset[current] = true;
     
-        for(it = ADJACENCY_LIST[current].begin(); it != ADJACENCY_LIST[current].end(); it++)
+        for(it = ADJACENCY_LIST[current].begin(); it != ADJACENCY_LIST[current].end(); ++it)
         {
             // For each adjacent position.
             endpoint = ends.count(*it);
@@ -231,11 +228,11 @@ DLLEXPORT long* astar(long *startv, const long startc, long *endv, const long en
                 follow[*it] = current;
                 break;
             }
-            long blocked = (obstaclev[*it] & blocking);
+            blocked = (obstaclev[*it] & blocking);
             if(blocked)
             {
-                long start = current;
-                while(follow.count(start) > 0)
+                start = current;
+                while(follow.count(start))
                 {
                     start = follow[start];
                 }
@@ -248,34 +245,33 @@ DLLEXPORT long* astar(long *startv, const long startc, long *endv, const long en
                         blocked &= ~i;
                     }
                 }
-            }
-            if(blocked == 0)
-            {
-                //Check to see if the cell is blocked by our mask
-                min = obstaclec; // The estimated distance to the best goal.
-                for(long j=0; j < endc; j+=2)
-                {
-                    tmp = distance(indextox(*it), indextoy(*it), endv[j], endv[j+1]);
-                    if(tmp < min) min = tmp;
-                }
-                OpenPt next;
-                next.est = min;
-                next.sofar = traveled;
-                next.index = *it;
-                tmp = next.est+next.sofar; //Tenative f score
-                if(closedset[*it] && tmp >= best_est[*it])
-                {
-                    // We've already found a better way here.
+                if(blocked)
                     continue;
-                }
-                if(tmp < best_est[*it])
-                {
-                    // This is a pretty good looking path, put it in the queue
-                    follow[*it] = current;
-                    best_est[*it] = next.est+next.sofar;
-                    openset.push( next );
-                }
-            } 
+            }
+            //Check to see if the cell is blocked by our mask
+            min = obstaclec; // The estimated distance to the best goal.
+            for(long j=0; j < endc; j+=2)
+            {
+                tmp = distance(indextox(*it), indextoy(*it), endv[j], endv[j+1]);
+                if(tmp < min) min = tmp;
+            }
+            OpenPt next;
+            next.est = min;
+            next.sofar = traveled;
+            next.index = *it;
+            tmp = next.est+next.sofar; //Tenative f score
+            if(closedset[*it] && tmp >= best_est[*it])
+            {
+                // We've already found a better way here.
+                continue;
+            }
+            if(tmp < best_est[*it])
+            {
+                // This is a pretty good looking path, put it in the queue
+                follow[*it] = current;
+                best_est[*it] = next.est+next.sofar;
+                openset.push( next );
+            }
         }
     }
 

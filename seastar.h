@@ -14,12 +14,12 @@ struct OpenPt
 };
 bool operator<(const OpenPt &lhs, const OpenPt& rhs);
 
-inline long position_to_index(const long &x, const long &y);
-inline bool check_coord(const long &x, const long &y, const long &max_x, const long &max_y);
-inline long distance(const long &x1, const long &y1, const long &x2, const long &y2);
-inline long indextox(const long &p);
-inline long indextoy(const long &p);
-inline long indexdistance(const long &p1, const long &p2);
+long position_to_index(const long &x, const long &y);
+bool check_coord(const long &x, const long &y, const long &max_x, const long &max_y);
+long distance(const long &x1, const long &y1, const long &x2, const long &y2);
+long indextox(const long &p);
+long indextoy(const long &p);
+long indexdistance(const long &p1, const long &p2);
 
 #ifdef __cplusplus
 extern "C"
