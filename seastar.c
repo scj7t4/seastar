@@ -8,6 +8,7 @@
 #include <map>
 #include <stdlib.h> 
 #include <iostream>
+#include <algorithm>
 
 using namespace std;
 
@@ -62,9 +63,9 @@ DLLEXPORT void init_astar(const long map_width, const long map_height)
     ADJACENCY_LIST.resize(map_height*map_width);
     MAP_WIDTH = map_width;
     MAP_HEIGHT = map_height;
-    for(long x = 0; x < map_width; x++)
+    for(long y = 0; y < map_height; y++)
     {
-        for(long y = 0; y < map_height; y++)
+        for(long x = 0; x < map_width; x++)
         {
             long pos = x + y*map_width;
             long tmpx, tmpy, tmp;
@@ -148,7 +149,7 @@ DLLEXPORT long* astar(long *startv, const long startc, long *endv, const long en
     long selectedend = -1; // The endpoint that was selected.
     long current;
     long traveled;
-    long min;
+    long pmin;
     long tmp;
     long blocked;
     long start;
@@ -174,7 +175,7 @@ DLLEXPORT long* astar(long *startv, const long startc, long *endv, const long en
     // set with it.
     for(long i=0; i < startc; i+=2)
     {
-        long min = obstaclec;
+        pmin = obstaclec;
         for(long j=0; j < endc; j+=2)
         {
             if(startv[i] == endv[j] && startv[i+1] == endv[j+1])
@@ -183,25 +184,22 @@ DLLEXPORT long* astar(long *startv, const long startc, long *endv, const long en
                 return NULL;
             }
             tmp = distance(startv[i],startv[i+1],endv[j],endv[j+1]);
-            if(tmp < min) min = tmp;
+            pmin = min(tmp, pmin);
         }
         // Make an open set entry for that estimate.
         OpenPt first;
-        first.est = min;
+        first.est = pmin;
         first.sofar = 0;
         first.index = position_to_index(startv[i],startv[i+1]);
-        best_est[first.index] = min;
+        best_est[first.index] = pmin;
         openset.push( first );
     }
 
-    while( openset.size() > 0 && endpoint == false )
+    while( !openset.empty() && endpoint == false )
     {
         //While there's still entries in the openset and we've not found
         //an endpoint.
         OpenPt consider = openset.top();
-        current = consider.index; // The current position
-        traveled = consider.sofar+1; //G score for all neighbors
-        
         openset.pop();
         
         //If we've already considered this cell.
@@ -211,9 +209,11 @@ DLLEXPORT long* astar(long *startv, const long startc, long *endv, const long en
         //the openset twice if the oldest discovered path there is worse than a
         //newer one. If the algorithm lasts long enough for the old path to be
         //checked again, it will simply be discarded.
-        if(closedset[current])
+        if(closedset[consider.index])
             continue;
 
+        current = consider.index; // The current position
+        traveled = consider.sofar+1; //G score for all neighbors
         closedset[current] = true;
     
         for(it = ADJACENCY_LIST[current].begin(); it != ADJACENCY_LIST[current].end(); ++it)
@@ -245,18 +245,18 @@ DLLEXPORT long* astar(long *startv, const long startc, long *endv, const long en
                         blocked &= ~i;
                     }
                 }
+                //Check to see if the cell is blocked by our mask
                 if(blocked)
                     continue;
             }
-            //Check to see if the cell is blocked by our mask
-            min = obstaclec; // The estimated distance to the best goal.
+            pmin = obstaclec; // The estimated distance to the best goal.
             for(long j=0; j < endc; j+=2)
             {
                 tmp = distance(indextox(*it), indextoy(*it), endv[j], endv[j+1]);
-                if(tmp < min) min = tmp;
+                pmin = min(tmp, pmin);
             }
             OpenPt next;
-            next.est = min;
+            next.est = pmin;
             next.sofar = traveled;
             next.index = *it;
             tmp = next.est+next.sofar; //Tenative f score
