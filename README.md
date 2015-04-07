@@ -1,6 +1,6 @@
 seastar
 =======
 
-An A* algorithm that would be pretty good for Sig-Game (in C++)
+An A* algorithm in C++, plus a python binding as a reference implementation.
 
 Comes with tasty Python binding
